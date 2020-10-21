@@ -2,17 +2,19 @@
 
 namespace BotMan\BotMan\Messages\Conversations;
 
-use Closure;
 use BotMan\BotMan\BotMan;
-use Spatie\Macroable\Macroable;
-use Illuminate\Support\Collection;
 use BotMan\BotMan\Interfaces\ShouldQueue;
 use BotMan\BotMan\Messages\Attachments\Audio;
+use BotMan\BotMan\Messages\Attachments\Contact;
+use BotMan\BotMan\Messages\Attachments\File;
 use BotMan\BotMan\Messages\Attachments\Image;
-use BotMan\BotMan\Messages\Attachments\Video;
-use BotMan\BotMan\Messages\Outgoing\Question;
 use BotMan\BotMan\Messages\Attachments\Location;
+use BotMan\BotMan\Messages\Attachments\Video;
 use BotMan\BotMan\Messages\Incoming\IncomingMessage;
+use BotMan\BotMan\Messages\Outgoing\Question;
+use Closure;
+use Illuminate\Support\Collection;
+use Spatie\Macroable\Macroable;
 
 /**
  * Class Conversation.
@@ -90,6 +92,22 @@ abstract class Conversation
      * @param array $additionalParameters
      * @return $this
      */
+    public function askForFiles($question, $next, $repeat = null, $additionalParameters = [])
+    {
+        $additionalParameters['__getter'] = 'getFiles';
+        $additionalParameters['__pattern'] = File::PATTERN;
+        $additionalParameters['__repeat'] = ! is_null($repeat) ? $this->bot->serializeClosure($repeat) : $repeat;
+
+        return $this->ask($question, $next, $additionalParameters);
+    }
+
+    /**
+     * @param string|\BotMan\BotMan\Messages\Outgoing\Question $question
+     * @param array|Closure $next
+     * @param array|Closure $repeat
+     * @param array $additionalParameters
+     * @return $this
+     */
     public function askForVideos($question, $next, $repeat = null, $additionalParameters = [])
     {
         $additionalParameters['__getter'] = 'getVideos';
@@ -132,6 +150,23 @@ abstract class Conversation
     }
 
     /**
+     * @param string|\BotMan\BotMan\Messages\Outgoing\Question $question
+     * @param array|Closure                                    $next
+     * @param array|Closure                                    $repeat
+     * @param array                                            $additionalParameters
+     *
+     * @return $this
+     */
+    public function askForContact($question, $next, $repeat = null, $additionalParameters = [])
+    {
+        $additionalParameters['__getter'] = 'getContact';
+        $additionalParameters['__pattern'] = Contact::PATTERN;
+        $additionalParameters['__repeat'] = ! is_null($repeat) ? $this->bot->serializeClosure($repeat) : $repeat;
+
+        return $this->ask($question, $next, $additionalParameters);
+    }
+
+    /**
      * Repeat the previously asked question.
      * @param string|Question $question
      */
@@ -147,11 +182,11 @@ abstract class Conversation
         $additionalParameters = unserialize($conversation['additionalParameters']);
 
         if (is_string($next)) {
-            $next = unserialize($next)->getClosure();
+            $next = unserialize($next);
         } elseif (is_array($next)) {
             $next = Collection::make($next)->map(function ($callback) {
                 if ($this->bot->getDriver()->serializesCallbacks() && ! $this->bot->runsOnSocket()) {
-                    $callback['callback'] = unserialize($callback['callback'])->getClosure();
+                    $callback['callback'] = unserialize($callback['callback']);
                 }
 
                 return $callback;
