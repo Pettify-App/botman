@@ -182,11 +182,11 @@ abstract class Conversation
         $additionalParameters = unserialize($conversation['additionalParameters']);
 
         if (is_string($next)) {
-            $next = unserialize($next)->getClosure();
+            $next = unserialize($next);
         } elseif (is_array($next)) {
             $next = Collection::make($next)->map(function ($callback) {
                 if ($this->bot->getDriver()->serializesCallbacks() && ! $this->bot->runsOnSocket()) {
-                    $callback['callback'] = unserialize($callback['callback'])->getClosure();
+                    $callback['callback'] = unserialize($callback['callback']);
                 }
 
                 return $callback;
